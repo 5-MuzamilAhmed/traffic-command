@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AURORA · Smart Intersection Command</title>
+<style>
+:root{--bg:#050810;--tx:#e7eeff;--mu:#8091b4;--bd:rgba(140,180,255,.15);--cy:#22d3ee;--mg:#e879f9;--gr:#34d399;--am:#fbbf24;--rd:#fb7185;--bl:#60a5fa;--mono:ui-monospace,"Cascadia Mono",Consolas,Menlo,monospace;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font:13px/1.35 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif;font-variant-numeric:tabular-nums}
+body{background:radial-gradient(1100px 600px at 12% -10%,rgba(34,211,238,.12),transparent 60%),radial-gradient(900px 700px at 105% 110%,rgba(232,121,249,.12),transparent 60%),linear-gradient(180deg,#060a14,#04060d)}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(120,160,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(120,160,255,.035) 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(ellipse at center,#000 30%,transparent 80%)}
+.glass{background:linear-gradient(180deg,rgba(22,32,60,.74),rgba(9,14,30,.8));border:1px solid var(--bd);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.05);backdrop-filter:blur(10px)}
+.app{position:relative;display:grid;grid-template-rows:58px minmax(0,1fr);height:100vh;padding:10px 12px 12px;gap:10px}
+.top{display:flex;align-items:center;gap:14px;padding:0 14px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand h1{margin:0;font-size:18px;letter-spacing:.32em;font-weight:800;background:linear-gradient(90deg,#67e8f9,#e879f9);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand p{margin:0;font-size:10px;color:var(--mu);letter-spacing:.14em;text-transform:uppercase}
+.chips{display:flex;gap:8px;margin-left:10px}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:99px;border:1px solid var(--bd);background:rgba(8,14,28,.6);font-size:11px;color:var(--mu)}
+.chip i{width:8px;height:8px;border-radius:50%;background:#475569}
+.chip.on i{background:var(--gr);box-shadow:0 0 10px var(--gr)}.chip.on{color:var(--tx)}
+.chip.warn i{background:var(--am);box-shadow:0 0 10px var(--am)}.chip.warn{color:var(--tx)}
+.spacer{flex:1}
+.clock{text-align:right;line-height:1}.clock small{display:block;font-size:9px;letter-spacing:.18em;color:var(--mu)}.clock b{font:700 22px var(--mono);color:#a5f3fc;text-shadow:0 0 14px rgba(34,211,238,.5)}
+.btn{font:600 12px inherit;font-family:inherit;color:var(--tx);background:rgba(30,44,80,.55);border:1px solid var(--bd);border-radius:10px;padding:8px 12px;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn:hover{filter:brightness(1.25);transform:translateY(-1px)}
+.btn.cy{background:linear-gradient(135deg,#0891b2,#2563eb);border-color:transparent}
+.btn.mg{background:linear-gradient(135deg,#a21caf,#7c3aed);border-color:transparent}
+.btn.gr{background:linear-gradient(135deg,#059669,#10b981);border-color:transparent;color:#032015}
+.btn.rd{background:linear-gradient(135deg,#be123c,#e11d48);border-color:transparent}
+.btn.ghost{background:transparent;border-style:dashed}
+.btn.on{background:linear-gradient(135deg,#0891b2,#2563eb);border-color:transparent}
+.seg{display:flex;gap:3px;padding:3px;border-radius:10px;background:rgba(5,9,20,.6);border:1px solid var(--bd)}
+.seg button{font:600 11px inherit;font-family:inherit;border:0;background:transparent;color:var(--mu);padding:5px 9px;border-radius:7px;cursor:pointer}
+.seg button.on{background:rgba(34,211,238,.18);color:#a5f3fc;box-shadow:inset 0 0 0 1px rgba(34,211,238,.4)}
+.body{display:grid;grid-template-columns:372px minmax(0,1fr) 452px;gap:10px;min-height:0}
+.col{display:flex;flex-direction:column;gap:10px;min-height:0;min-width:0}
+.lanes{flex:1;min-height:0;display:grid;grid-template-rows:repeat(4,minmax(0,1fr));gap:8px}
+.lane{--c:#fff;padding:9px 12px;display:grid;grid-template-rows:auto 1fr auto;gap:5px;position:relative;overflow:hidden;min-height:0}
+.lane:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c);box-shadow:0 0 14px var(--c)}
+.lt{display:flex;align-items:center;gap:9px}.lt small{display:block;color:var(--mu);font-size:10px}
+.lc{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font:800 15px var(--mono);color:#04101c;background:var(--c);box-shadow:0 0 16px var(--c)}
+.ls{margin-left:auto;font:700 10px var(--mono);letter-spacing:.12em;padding:4px 9px;border-radius:99px;border:1px solid currentColor}
+.ls.G{color:var(--gr);background:rgba(52,211,153,.1)}.ls.Y{color:var(--am);background:rgba(251,191,36,.1)}.ls.R{color:var(--rd);background:rgba(251,113,133,.08)}.ls.E{color:#fff;background:linear-gradient(90deg,#e11d48,#2563eb);border-color:transparent;animation:fl .5s infinite alternate}
+@keyframes fl{to{filter:brightness(1.5)}}
+.lq{display:flex;align-items:center;gap:12px;min-height:0}
+.qn{font:800 38px var(--mono);min-width:62px;color:var(--c);text-shadow:0 0 18px color-mix(in srgb,var(--c) 60%,transparent)}
+.qb{flex:1;display:grid;grid-template-columns:repeat(12,1fr);gap:3px;height:22px}
+.qb i{border-radius:3px;background:rgba(120,150,210,.14)}.qb i.f{background:var(--c);box-shadow:0 0 8px var(--c)}
+.lg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.lg div{background:rgba(5,9,20,.5);border-radius:8px;padding:4px 7px}.lg small{display:block;font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:.08em}.lg b{font:700 13px var(--mono)}
+.card{padding:10px 12px}.card h3{margin:0 0 6px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--mu);display:flex;justify-content:space-between}
+.card h3 small{letter-spacing:.05em;text-transform:none}
+.card canvas{width:100%;display:block}
+.tl canvas{height:104px}.cg canvas{height:112px}
+.stage{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:10px;min-height:0;min-width:0}
+.view{position:relative;overflow:hidden;min-height:0;background:radial-gradient(circle at 50% 50%,#0b1328,#05070f)}
+.view canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:14px}
+.hud{position:absolute;z-index:3}
+.phase{left:14px;top:14px;display:flex;gap:12px;align-items:center;padding:10px 16px 10px 12px;border-radius:14px;background:rgba(6,10,22,.72);border:1px solid var(--bd);backdrop-filter:blur(8px);--pc:var(--gr)}
+.phase svg{width:58px;height:58px;transform:rotate(-90deg)}
+.phase .ring{fill:none;stroke:rgba(120,150,210,.18);stroke-width:5}.phase .arc{fill:none;stroke:var(--pc);stroke-width:5;stroke-linecap:round;filter:drop-shadow(0 0 6px var(--pc));transition:stroke .2s}
+.phase .rt{position:absolute;left:12px;top:10px;width:58px;height:58px;display:grid;place-items:center;font:800 18px var(--mono);color:var(--pc)}
+.phase h2{margin:0;font-size:19px;letter-spacing:.06em;color:var(--pc);text-shadow:0 0 16px var(--pc)}.phase p{margin:2px 0 0;color:var(--mu);font-size:11px}.phase p b{color:var(--tx)}
+.vsel{right:14px;top:14px}
+.emb{left:50%;top:14px;transform:translate(-50%,-150%);transition:transform .35s cubic-bezier(.2,1.2,.3,1);display:flex;align-items:center;gap:12px;padding:10px 20px;border-radius:14px;font-weight:700;letter-spacing:.04em;background:linear-gradient(90deg,rgba(225,29,72,.92),rgba(37,99,235,.92));box-shadow:0 0 40px rgba(225,29,72,.5),0 0 40px rgba(37,99,235,.4);white-space:nowrap}
+.emb.on{transform:translate(-50%,0)}.emb .ic{font-size:26px}.emb small{display:block;font-weight:500;opacity:.85;letter-spacing:.08em}
+.dsbar{left:14px;right:14px;bottom:12px;display:none;align-items:center;gap:12px;padding:8px 14px;border-radius:12px;background:rgba(6,10,22,.72);border:1px solid var(--bd);backdrop-filter:blur(8px);font-size:11px}
+.dsbar.on{display:flex}.dsbar b{color:#a7f3d0}.pbar{flex:1;height:6px;border-radius:9px;background:rgba(120,150,210,.18);overflow:hidden}.pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cy),var(--mg));box-shadow:0 0 10px var(--cy)}
+.hint{left:50%;bottom:16px;transform:translateX(-50%);padding:8px 16px;border-radius:99px;background:rgba(6,10,22,.7);border:1px dashed var(--bd);color:var(--mu);font-size:12px;display:none}
+.hint.on{display:block}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.kpi{--a:var(--cy);position:relative;overflow:hidden;padding:10px 12px;height:96px}
+.kpi:after{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--a),transparent)}
+.kl{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mu)}.kv{font:800 28px var(--mono);margin-top:3px;color:var(--a);text-shadow:0 0 18px color-mix(in srgb,var(--a) 55%,transparent)}.kd{font-size:10.5px;color:var(--mu)}
+.kpi canvas{position:absolute;right:8px;bottom:8px;width:84px;height:34px;opacity:.9}
+.right{padding:0;overflow:hidden}
+.tabs{display:flex;gap:4px;padding:8px;border-bottom:1px solid var(--bd)}
+.tabs button{flex:1;font:700 11px inherit;font-family:inherit;color:var(--mu);background:transparent;border:1px solid transparent;border-radius:9px;padding:8px 4px;cursor:pointer;letter-spacing:.04em}
+.tabs button.on{color:#a5f3fc;background:rgba(34,211,238,.12);border-color:rgba(34,211,238,.35);box-shadow:0 0 18px rgba(34,211,238,.12)}
+.panes{flex:1;min-height:0;position:relative}
+.pane{display:none;position:absolute;inset:0;overflow:auto;padding:12px;scrollbar-width:thin}.pane.on{display:block}
+.sec{margin-bottom:14px;padding:12px;border-radius:12px;background:rgba(5,9,20,.4);border:1px solid var(--bd)}
+.sec h4{margin:0 0 9px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--cy)}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0}.row4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0}
+.lbl{font-size:10px;color:var(--mu);margin-top:8px;letter-spacing:.08em;text-transform:uppercase}
+.drop{display:block;padding:14px;border-radius:12px;border:1.5px dashed rgba(34,211,238,.4);background:rgba(34,211,238,.05);cursor:pointer;text-align:center;transition:.2s}.drop:hover{background:rgba(34,211,238,.12)}.drop input{display:none}.drop b{display:block;color:#a5f3fc;font-size:13px}.drop small{color:var(--mu);font-size:11px}
+.chk{display:flex;align-items:center;gap:8px;color:var(--mu);margin:8px 0;font-size:12px}
+.mu{color:var(--mu)}.mono{font-family:var(--mono)}p.mu{margin:8px 0 0;font-size:11px}
+.hw{display:flex;align-items:center;gap:8px;margin-bottom:6px}.hw i{width:10px;height:10px;border-radius:50%;background:#475569}.hw i.on{background:var(--gr);box-shadow:0 0 12px var(--gr)}
+.tcard{padding:10px 4px;border-radius:10px;border:1px solid var(--bd);background:rgba(30,44,80,.4);color:var(--tx);cursor:pointer;font:600 11px inherit;font-family:inherit}.tcard.on{border-color:var(--mg);box-shadow:0 0 18px rgba(232,121,249,.3);background:rgba(168,85,247,.2)}.tcard span{display:block;font-size:22px}
+.dec{padding:12px;border-radius:12px;background:linear-gradient(135deg,rgba(34,211,238,.12),rgba(232,121,249,.1));border:1px solid var(--bd);margin-bottom:12px}.dec b{font-size:15px}.dec p{margin:4px 0 0;color:var(--mu);font-size:12px}
+.sc{display:grid;grid-template-columns:24px 1fr 86px;gap:8px;align-items:center;margin:7px 0}.sc .bar{height:10px;border-radius:9px;background:rgba(120,150,210,.14);overflow:hidden}.sc .bar i{display:block;height:100%;border-radius:9px;box-shadow:0 0 10px currentColor}.sc.nx .lc2{outline:2px solid var(--cy)}
+.lc2{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font:800 12px var(--mono);color:#04101c}
+.sc span.v{font:600 11px var(--mono);color:var(--mu);text-align:right}
+.logl{font:11.5px/1.45 var(--mono)}.logl div{padding:5px 8px;border-left:2px solid var(--c,var(--cy));margin-bottom:4px;background:rgba(5,9,20,.4);border-radius:0 8px 8px 0}.logl em{color:var(--mu);font-style:normal;margin-right:8px}
+.cr{margin:11px 0}.cr .cl{display:flex;justify-content:space-between;font-size:11px;color:var(--mu);margin-bottom:4px;letter-spacing:.06em;text-transform:uppercase}.cr .cl b{font-size:11px}
+.cb{display:grid;grid-template-columns:1fr 64px;gap:8px;align-items:center;margin:3px 0}.cb .t{height:9px;border-radius:9px;background:rgba(120,150,210,.12);overflow:hidden}.cb .t i{display:block;height:100%;border-radius:9px}.cb span{font:700 12px var(--mono);text-align:right}
+.good{color:var(--gr)}.bad{color:var(--rd)}
+.big{text-align:center;padding:14px;border-radius:14px;margin-bottom:10px;background:linear-gradient(135deg,rgba(5,150,105,.25),rgba(8,145,178,.2));border:1px solid rgba(52,211,153,.3)}.big b{display:block;font:800 40px var(--mono);color:var(--gr);text-shadow:0 0 24px rgba(52,211,153,.5)}.big small{color:var(--mu);letter-spacing:.14em;text-transform:uppercase;font-size:10px}
+.chtitle{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--mu);margin:10px 0 4px}
+.pane canvas.ch{width:100%;height:132px;display:block;border-radius:10px;background:rgba(5,9,20,.4)}
+::-webkit-scrollbar{width:7px}::-webkit-scrollbar-thumb{background:rgba(140,180,255,.25);border-radius:9px}
+</style></head><body>
+<div class="app">
+<header class="top glass">
+ <div class="brand"><svg width="34" height="34" viewBox="0 0 34 34"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#e879f9"/></linearGradient></defs><path d="M17 2l13 7.5v15L17 32 4 24.5v-15z" fill="none" stroke="url(#lg)" stroke-width="2"/><path d="M17 9v16M9 17h16" stroke="url(#lg)" stroke-width="2.2" stroke-linecap="round"/><circle cx="17" cy="17" r="3" fill="url(#lg)"/></svg><div><h1>AURORA</h1><p>Adaptive Intersection Command · AI + IoT</p></div></div>
+ <div class="chips"><span class="chip" id="chSrc"><i></i><b>Standby</b></span><span class="chip" id="chHw"><i></i><b>Hardware offline</b></span><span class="chip on" id="chMode"><i></i><b>Adaptive AI controller</b></span></div>
+ <div class="spacer"></div>
+ <div class="clock"><small>SIM TIME</small><b id="clk">00:00:00</b></div>
+ <div class="seg" id="spd"></div>
+ <button class="btn" id="btnFreeze">⏸ Freeze</button>
+ <button class="btn mg" id="btnPop">⧉ Analytics Window</button>
+ <button class="btn cy" id="btnHw">⌁ Connect Arduino</button>
+</header>
+<main class="body">
+ <section class="col">
+  <div class="lanes" id="lanes"></div>
+  <div class="glass card tl"><h3>Signal timeline <small>last 90 s</small></h3><canvas id="cGantt"></canvas></div>
+  <div class="glass card cg"><h3>Congestion index <small id="ciTxt">Free flow</small></h3><canvas id="cGauge"></canvas></div>
+ </section>
+ <section class="stage">
+  <div class="glass view" id="view">
+   <canvas id="cv"></canvas>
+   <div class="hud phase" id="phase"><svg viewBox="0 0 58 58"><circle class="ring" cx="29" cy="29" r="25"/><circle class="arc" id="pArc" cx="29" cy="29" r="25" stroke-dasharray="157.08" stroke-dashoffset="0"/></svg><div class="rt" id="pLet">A</div><div><h2 id="pTxt">LANE A · GREEN</h2><p id="pSub">Elapsed <b>0 s</b></p></div></div>
+   <div class="hud vsel seg" id="vsel"><button data-v="live" class="on">LIVE</button><button data-v="heat">DENSITY</button></div>
+   <div class="hud emb" id="emb"><span class="ic" id="emIc">🚑</span><div><span id="emTx">EMERGENCY</span><small id="emSm">Clearing corridor</small></div></div>
+   <div class="hud dsbar" id="dsBar"><b id="dsName">dataset</b><div class="pbar"><i id="dsPb"></i></div><span class="mono" id="dsTm">00:00 / 00:00</span><span class="mu" id="dsEv"></span></div>
+   <div class="hud hint" id="hint">Standby · load a CSV dataset, or press A–D to inject vehicles (Shift+A–D = emergency)</div>
+  </div>
+  <div class="kpis" id="kpis"></div>
+ </section>
+ <aside class="col glass right">
+  <div class="tabs" id="tabs"><button data-p="ctl" class="on">⚙ Control</button><button data-p="ai">🧠 AI Brain</button><button data-p="cmp">⚖ Compare</button><button data-p="ch">📈 Charts</button><button data-p="log">☰ Log</button></div>
+  <div class="panes">
+   <div class="pane on" id="pn_ctl">
+    <div class="sec"><h4>Dataset replay</h4>
+     <label class="drop"><input type="file" id="csv" accept=".csv,text/csv"><b>⬆ Load CSV dataset</b><small id="dsInfo">columns: timestamp, lane, action, vehicle_type</small></label>
+     <div class="row3"><button class="btn gr" id="bStart">▶ Start</button><button class="btn" id="bPause">⏸ Pause</button><button class="btn" id="bRestart">↺ Restart</button></div>
+     <label class="chk"><input type="checkbox" id="loop"> Continue from the top when the dataset ends</label>
+     <button class="btn ghost" id="bDemo" style="width:100%">⚡ Load built-in demo feed (20 min)</button>
+    </div>
+    <div class="sec"><h4>Hardware link</h4>
+     <div class="hw"><i id="hwDot"></i><span id="hwTxt">Arduino not connected</span></div>
+     <div class="mono mu" id="hwLast" style="font-size:11px;margin-bottom:8px">awaiting serial data…</div>
+     <button class="btn cy" id="btnHw2" style="width:100%">Connect via Web Serial (Chrome / Edge)</button>
+    </div>
+    <div class="sec"><h4>Manual injection</h4>
+     <div class="lbl">Add vehicle to lane</div><div class="row4" id="mCar"></div>
+     <div class="lbl">Emergency vehicle type</div><div class="row3" id="mType"></div>
+     <div class="lbl">Dispatch emergency to lane</div><div class="row4" id="mEm"></div>
+     <label class="chk"><input type="checkbox" id="burst"> Burst mode (×5 vehicles)</label>
+     <p class="mu">Keys: A–D add vehicle · Shift+A–D emergency · Space freeze</p>
+    </div>
+    <button class="btn rd" id="bReset" style="width:100%">Reset simulation</button>
+   </div>
+   <div class="pane" id="pn_ai"></div>
+   <div class="pane" id="pn_cmp"></div>
+   <div class="pane" id="pn_ch">
+    <div class="chtitle" style="margin-top:0">Queue per lane</div><canvas class="ch" id="mQ"></canvas>
+    <div class="chtitle">Average delay · AI vs fixed timer (s)</div><canvas class="ch" id="mD"></canvas>
+    <div class="chtitle">Density heatmap (lanes × time)</div><canvas class="ch" id="mH"></canvas>
+    <div class="chtitle">Served vehicles per lane</div><canvas class="ch" id="mB"></canvas>
+    <button class="btn mg" id="btnPop2" style="width:100%;margin-top:12px">⧉ Open full analytics window</button>
+   </div>
+   <div class="pane" id="pn_log"></div>
+  </div>
+ </aside>
+</main>
+</div>
+<script>
+//#SIM-START
+const LN=['A','B','C','D'],DIRS=['North','East','South','West'],LCOL=['#38bdf8','#fbbf24','#c084fc','#2dd4bf'];
+const CFG={LX:33,STOP:-94,SPAWN:-470,EXIT:480,V0:125,VE:205,A:95,B:170,S0:7,T:.55,HW:66};
+const TY={CAR:{L:30,W:16},SUV:{L:34,W:18},VAN:{L:42,W:19},AMB:{L:46,W:20,em:1,name:'Ambulance',icon:'🚑'},FIRE:{L:58,W:22,em:1,name:'Fire Truck',icon:'🚒'},POL:{L:36,W:18,em:1,name:'Police Cruiser',icon:'🚓'}};
+const PAL=[['#38bdf8','#0ea5e9','#7dd3fc'],['#fbbf24','#f59e0b','#fcd34d'],['#c084fc','#a855f7','#d8b4fe'],['#2dd4bf','#14b8a6','#5eead4']];
+const NEUT=['#e5e7eb','#9ca3af','#334155','#f8fafc'];
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const gw=c=>clamp(5+.8*c,5,20);
+function mkEv(lane,type){
+ const r=Math.random();let kind=type;
+ if(type==='CAR')kind=r<.7?'CAR':r<.92?'SUV':'VAN';
+ const col=Math.random()<.22?NEUT[(Math.random()*NEUT.length)|0]:PAL[lane][(Math.random()*3)|0];
+ return {lane,type,kind,col};
+}
+class Sim{
+ constructor(ai){this.ai=ai;this.seq=0;this.reset();}
+ reset(){
+  this.t=0;this.L=[[],[],[],[]];this.B=[[],[],[],[]];this.ph='G';this.cur=0;this.pt=0;this.em=false;this.emRel=false;this.relT=0;this.dur=5;
+  this.st={served:[0,0,0,0],arr:[0,0,0,0],dSum:[0,0,0,0],dN:[0,0,0,0],emN:0,emSum:0,emLast:0,pre:0,qSum:0,qN:0};
+  this.rec=[];this.cross=[];this.rate=[0,0,0,0];this.aw=[0,0,0,0];this.rt=0;this.ht=0;this.hist=[];this.seg=[];this.logs=[];this.lastEnd=[0,0,0,0];this.dec=null;this.vid=0;
+  this.startGreen(0,false,true);
+ }
+ log(k,m){this.logs.push({t:this.t,k,m});if(this.logs.length>120)this.logs.shift();this.seq++;}
+ sig(i){if(this.ph==='AR'||i!==this.cur)return 'R';return this.ph==='Y'?'Y':'G';}
+ arrive(ev){
+  this.B[ev.lane].push({ev,t:this.t});this.st.arr[ev.lane]++;this.aw[ev.lane]++;
+  if(this.ai&&TY[ev.type].em)this.log('em',TY[ev.type].icon+' '+TY[ev.type].name+' detected · Lane '+LN[ev.lane]);
+ }
+ dem(i){
+  let n=0;for(const x of this.B[i])if(!(this.ai&&TY[x.ev.type].em))n++;
+  for(const v of this.L[i])if(!v.crossed&&!v.ghost)n++;return n;
+ }
+ oldest(i){let m=0;for(const v of this.L[i])if(!v.crossed&&!v.ghost)m=Math.max(m,this.t-v.t0);for(const x of this.B[i])m=Math.max(m,this.t-x.t);return m;}
+ score(i){const q=this.dem(i);if(!q)return 0;return q+.18*this.oldest(i)+Math.max(0,(this.t-this.lastEnd[i])-45)*.25;}
+ nextEm(){
+  if(!this.ai)return -1;let best=-1,bt=1e9;
+  for(let i=0;i<4;i++){for(const v of this.L[i])if(v.em&&!v.crossed&&v.t0<bt){bt=v.t0;best=i;}for(const x of this.B[i])if(TY[x.ev.type].em&&x.t<bt){bt=x.t;best=i;}}
+  return best;
+ }
+ emBusy(l){for(const v of this.L[l])if(v.em&&v.p-v.L<CFG.HW+6)return true;return false;}
+ startGreen(lane,em,init){
+  this.cur=lane;this.ph='G';this.pt=0;this.em=!!em;this.emRel=false;
+  const q=this.dem(lane);this.dur=this.ai?(em?8:gw(q+this.rate[lane]/60*4)):15;
+  this.seg.push({lane,s:this.t,e:null,k:em?'E':'G'});
+  while(this.seg.length&&this.seg[0].e!==null&&this.seg[0].e<this.t-240)this.seg.shift();
+  if(this.ai&&!init&&!em)this.log('sig','Lane '+LN[lane]+' green · planned '+Math.round(this.dur)+' s · queue '+q);
+ }
+ toY(){
+  this.ph='Y';this.pt=0;this.em=false;this.lastEnd[this.cur]=this.t;
+  const s=this.seg[this.seg.length-1];if(s&&s.e===null)s.e=this.t;
+ }
+ next(){
+  let lane,em=false;
+  if(this.ai){
+   const tg=this.nextEm();
+   if(tg>=0){lane=tg;em=true;this.st.pre++;this.log('pre','PRIORITY · Lane '+LN[tg]+' forced green for emergency vehicle');}
+   else{
+    let best=-1,bs=0;const sc=[];
+    for(let k=1;k<=4;k++){const i=(this.cur+k)%4;const s=this.score(i);if(s>bs){bs=s;best=i;}}
+    for(let i=0;i<4;i++)sc.push(this.score(i));
+    lane=best>=0?best:(this.cur+1)%4;
+    this.dec={t:this.t,lane,sc,q:[0,1,2,3].map(i=>this.dem(i)),ow:[0,1,2,3].map(i=>this.oldest(i))};
+    this.log('ai','Decision → Lane '+LN[lane]+' · score '+(sc[lane]||0).toFixed(1)+' · queue '+this.dem(lane)+' · oldest '+Math.round(this.oldest(lane))+' s');
+   }
+  }else lane=(this.cur+1)%4;
+  this.startGreen(lane,em);
+ }
+ control(dt){
+  this.pt+=dt;
+  if(this.ph==='G'){if(this.ai)this.ctrlAI();else if(this.pt>=this.dur)this.toY();}
+  else if(this.ph==='Y'){if(this.pt>=2){this.ph='AR';this.pt=0;}}
+  else if(this.pt>=1.2)this.next();
+ }
+ ctrlAI(){
+  const c=this.cur,tg=this.nextEm();
+  if(this.em){
+   if(this.emBusy(c)){this.emRel=false;return;}
+   if(!this.emRel){this.emRel=true;this.relT=this.pt+3;}
+   if(tg>=0&&tg!==c){this.toY();return;}
+   if(this.pt>=this.relT)this.toY();
+   return;
+  }
+  if(tg>=0){
+   if(tg===c){this.em=true;this.emRel=false;this.st.pre++;this.seg[this.seg.length-1].k='E';this.log('pre','PRIORITY HOLD · Lane '+LN[c]+' stays green for emergency');}
+   else this.toY();
+   return;
+  }
+  const q=this.dem(c),oth=this.dem(0)+this.dem(1)+this.dem(2)+this.dem(3)-q;
+  if(this.pt>=this.dur){if(this.pt<25&&q>=2)this.dur=this.pt+1.5;else if(oth>0)this.toY();}
+  else if(this.pt>=5&&q===0&&oth>0)this.toY();
+ }
+ rearVeh(i){let r=null;for(const v of this.L[i])if(!v.ghost&&(!r||v.p<r.p))r=v;return r;}
+ spawn(){
+  for(let i=0;i<4;i++){
+   const b=this.B[i];if(!b.length)continue;
+   if(this.ai)for(let k=b.length-1;k>=0;k--)if(TY[b[k].ev.type].em){this.make(i,b[k]);b.splice(k,1);}
+   if(b.length){const r=this.rearVeh(i);if(!r||r.p-r.L>CFG.SPAWN+16)this.make(i,b.shift());}
+  }
+ }
+ make(i,it){
+  const e=it.ev,d=TY[e.kind],em=!!TY[e.type].em,r=this.rearVeh(i);
+  const v0=em?140:90;
+  this.L[i].push({id:++this.vid,lane:i,type:e.type,kind:e.kind,col:e.col,L:d.L,W:d.W,p:CFG.SPAWN,v:(r&&!em)?Math.min(v0,r.v):v0,a:0,lat:0,t0:it.t,crossed:false,em,ghost:em&&this.ai});
+ }
+ onCross(v){
+  const S=this.st,i=v.lane,free=(CFG.STOP-CFG.SPAWN)/(v.em?CFG.VE*.8:CFG.V0*.85);
+  const d=Math.max(0,this.t-v.t0-free);S.served[i]++;S.dSum[i]+=d;S.dN[i]++;this.rec.push({t:this.t,d});this.cross.push(this.t);
+  if(v.em){const r=this.t-v.t0;S.emN++;S.emSum+=r;S.emLast=r;if(this.ai)this.log('em',TY[v.type].icon+' '+TY[v.type].name+' cleared Lane '+LN[i]+' in '+r.toFixed(1)+' s');}
+ }
+ move(dt){
+  const S=CFG;
+  for(let i=0;i<4;i++){
+   const arr=this.L[i],s=this.sig(i),gh=arr.filter(x=>x.ghost);
+   for(const v of arr){
+    const v0=v.ghost?S.VE:S.V0;let gap=1e9,vl=v.v,lead=null;
+    for(const o of arr){if(o===v||o.ghost!==v.ghost||o.p<=v.p)continue;const g=o.p-o.L-v.p;if(g<gap){gap=g;vl=o.v;lead=o;}}
+    if(!v.crossed){
+     const d=S.STOP-v.p;let stop=false;
+     if(s==='R')stop=d>v.v*.35;else if(s==='Y')stop=d>v.v*v.v/9+4;
+     if(stop&&d<gap){gap=Math.max(d,.1);vl=0;lead=null;}
+    }
+    const dv=v.v-vl,ss=S.S0+Math.max(0,v.v*S.T+v.v*dv/(2*Math.sqrt(S.A*S.B)));
+    let a=S.A*(1-Math.pow(v.v/v0,4)-Math.pow(ss/Math.max(gap,.1),2));
+    a=Math.max(a,-S.B*2);v.a=a;v.v=Math.max(0,v.v+a*dt);
+    let np=v.p+v.v*dt;
+    if(lead&&np>lead.p-lead.L-2){np=Math.max(v.p,lead.p-lead.L-2);v.v=Math.min(v.v,lead.v);}
+    v.p=np;
+    if(!v.crossed&&v.p>=S.STOP){v.crossed=true;this.onCross(v);}
+    const pull=!v.ghost&&gh.some(g=>g.p<v.p+50),tg=v.ghost?-16:pull?16:0;
+    v.lat+=clamp(tg-v.lat,-50*dt,50*dt);
+   }
+   this.L[i]=arr.filter(v=>v.p-v.L<S.EXIT);
+  }
+ }
+ avgAll(){let s=0,n=0;for(let i=0;i<4;i++){s+=this.st.dSum[i];n+=this.st.dN[i];}return n?s/n:0;}
+ avgRec(){if(!this.rec.length)return 0;let s=0;for(const x of this.rec)s+=x.d;return s/this.rec.length;}
+ thr(){const w=Math.min(60,Math.max(5,this.t));return this.cross.length*60/w;}
+ metrics(dt){
+  this.rt+=dt;if(this.rt>=5){this.rt=0;for(let i=0;i<4;i++){this.rate[i]=.4*(this.aw[i]*12)+.6*this.rate[i];this.aw[i]=0;}}
+  this.ht+=dt;
+  if(this.ht>=1){
+   this.ht=0;const q=[0,1,2,3].map(i=>this.dem(i)),tot=q[0]+q[1]+q[2]+q[3];this.st.qSum+=tot;this.st.qN++;
+   while(this.rec.length&&this.rec[0].t<this.t-60)this.rec.shift();while(this.cross.length&&this.cross[0]<this.t-60)this.cross.shift();
+   this.hist.push({t:this.t,q,tot,d:this.avgRec(),thr:this.thr()});if(this.hist.length>240)this.hist.shift();
+  }
+ }
+ step(dt){this.t+=dt;this.spawn();this.control(dt);this.move(dt);this.metrics(dt);}
+}
+//#SIM-END
+
+/* ============ helpers ============ */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const fmt=s=>{s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return(h?String(h).padStart(2,'0')+':':'')+String(m).padStart(2,'0')+':'+String(x).padStart(2,'0');};
+const clk=s=>{s=Math.floor(s);return[Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(x=>String(x).padStart(2,'0')).join(':');};
+function mix(hex,a){const n=parseInt(hex.slice(1),16);let r=n>>16,g=(n>>8)&255,b=n&255;const t=a<0?0:255,k=Math.abs(a);return`rgb(${Math.round(r+(t-r)*k)},${Math.round(g+(t-g)*k)},${Math.round(b+(t-b)*k)})`;}
+function rr(c,x,y,w,h,r){c.beginPath();if(c.roundRect)c.roundRect(x,y,w,h,r);else c.rect(x,y,w,h);}
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const BASE=900,C=450;
+const rot=(i,x,y)=>{const a=i*Math.PI/2,c=Math.cos(a),s=Math.sin(a);return[C+x*c-y*s,C+x*s+y*c];};
+
+/* ============ state ============ */
+const sim=new Sim(true),base=new Sim(false);
+let speed=1,frozen=false,view='live',selEm='AMB',popTab='ov',pop=null,tabNow='ctl';
+let ds={ev:[],dur:0,name:'',cnt:[0,0,0,0],em:0},rp={on:false,t:0,i:0,loop:false,done:false,laps:0};
+let hw={on:false,flash:[0,0],last:'',writer:null,lastSig:''};
+function inject(ev){sim.arrive(ev);base.arrive(ev);}
+function injectN(lane,type){const n=(type==='CAR'&&$('#burst').checked)?5:1;for(let k=0;k<n;k++)inject(mkEv(lane,type));}
+
+/* ============ static scene ============ */
+let SC;
+function buildScene(){
+ const S=2;SC=document.createElement('canvas');SC.width=SC.height=BASE*S;const c=SC.getContext('2d');c.scale(S,S);
+ const R=mulberry(11),HW=CFG.HW,SW=22;
+ let g=c.createLinearGradient(0,0,BASE,BASE);g.addColorStop(0,'#08101f');g.addColorStop(1,'#0b0f1e');c.fillStyle=g;c.fillRect(0,0,BASE,BASE);
+ const q0=C+HW+SW,bs=C-HW-SW,blocks=[[0,0],[q0,0],[0,q0],[q0,q0]];
+ blocks.forEach(([bx,by],bi)=>{
+  c.fillStyle='#0c1425';rr(c,bx+4,by+4,bs-8,bs-8,16);c.fill();c.strokeStyle='rgba(120,160,255,.10)';c.lineWidth=1;c.stroke();
+  const cells=[[0,0],[1,0],[0,1],[1,1]];
+  cells.forEach(([cx,cy],k)=>{
+   const w=(bs-44)/2,x=bx+16+cx*(w+12),y=by+16+cy*(w+12),pw=w-R()*30,ph=w-R()*30,ox=x+(w-pw)/2,oy=y+(w-ph)/2;
+   const park=R()<.2;
+   if(park){
+    c.fillStyle='#0b1f1c';rr(c,x,y,w,w,12);c.fill();c.strokeStyle='rgba(52,211,153,.25)';c.stroke();
+    for(let t=0;t<14;t++){const tx=x+14+R()*(w-28),ty=y+14+R()*(w-28),tr=7+R()*9;c.fillStyle='rgba(0,0,0,.35)';c.beginPath();c.arc(tx+3,ty+4,tr,0,7);c.fill();const gg=c.createRadialGradient(tx-2,ty-2,1,tx,ty,tr);gg.addColorStop(0,'#2fb585');gg.addColorStop(1,'#0f5e4a');c.fillStyle=gg;c.beginPath();c.arc(tx,ty,tr,0,7);c.fill();}
+    return;
+   }
+   c.fillStyle='rgba(0,0,0,.45)';rr(c,ox+7,oy+9,pw,ph,10);c.fill();
+   const gg=c.createLinearGradient(ox,oy,ox+pw,oy+ph);const hue=[210,235,265,190][(bi+k)%4];gg.addColorStop(0,`hsl(${hue},38%,19%)`);gg.addColorStop(1,`hsl(${hue},40%,11%)`);
+   c.fillStyle=gg;rr(c,ox,oy,pw,ph,10);c.fill();c.strokeStyle=`hsla(${hue+40},90%,65%,.45)`;c.lineWidth=1.5;c.stroke();
+   c.fillStyle=`hsla(${hue},40%,28%,.55)`;rr(c,ox+9,oy+9,pw-18,ph-18,6);c.fill();
+   const kind=R();
+   if(kind<.3){c.strokeStyle='rgba(255,255,255,.5)';c.lineWidth=2;c.beginPath();c.arc(ox+pw/2,oy+ph/2,Math.min(pw,ph)/4,0,7);c.stroke();c.fillStyle='rgba(255,255,255,.6)';c.font='700 18px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('H',ox+pw/2,oy+ph/2+1);}
+   else if(kind<.6){for(let n=0;n<5;n++){c.fillStyle=`hsla(${hue},70%,${34+R()*14}%,.9)`;rr(c,ox+14+R()*(pw-48),oy+14+R()*(ph-40),22+R()*14,14+R()*10,3);c.fill();}}
+   else{c.fillStyle='rgba(34,211,238,.20)';for(let n=0;n<7;n++)c.fillRect(ox+12,oy+12+n*((ph-24)/7),pw-24,(ph-24)/7-4);}
+   c.fillStyle='rgba(232,121,249,.8)';c.shadowColor='#e879f9';c.shadowBlur=8;c.fillRect(ox+pw-6,oy+14,2.5,ph-28);c.shadowBlur=0;
+  });
+ });
+ // sidewalks & roads
+ c.fillStyle='#0f182b';c.fillRect(C-HW-SW,0,SW,BASE);c.fillRect(C+HW,0,SW,BASE);c.fillRect(0,C-HW-SW,BASE,SW);c.fillRect(0,C+HW,BASE,SW);
+ c.fillStyle='#111a2c';c.fillRect(C-HW,0,2*HW,BASE);c.fillRect(0,C-HW,BASE,2*HW);
+ for(let n=0;n<2600;n++){c.fillStyle=`rgba(${120+R()*80|0},${150+R()*80|0},255,${R()*.05})`;const x=R()*BASE,y=R()*BASE;if(Math.abs(x-C)<HW||Math.abs(y-C)<HW)c.fillRect(x,y,1.4,1.4);}
+ c.fillStyle='#141e33';c.fillRect(C-HW,C-HW,2*HW,2*HW);
+ // neon road edges
+ c.strokeStyle='rgba(34,211,238,.45)';c.lineWidth=1.6;c.shadowColor='#22d3ee';c.shadowBlur=8;
+ const E=[[C-HW,0,C-HW,C-HW],[C+HW,0,C+HW,C-HW],[C-HW,C+HW,C-HW,BASE],[C+HW,C+HW,C+HW,BASE],[0,C-HW,C-HW,C-HW],[0,C+HW,C-HW,C+HW],[C+HW,C-HW,BASE,C-HW],[C+HW,C+HW,BASE,C+HW]];
+ E.forEach(([a,b,x,y])=>{c.beginPath();c.moveTo(a,b);c.lineTo(x,y);c.stroke();});c.shadowBlur=0;
+ // per-arm markings
+ for(let i=0;i<4;i++){
+  c.save();c.translate(C,C);c.rotate(i*Math.PI/2);
+  c.strokeStyle='rgba(251,191,36,.55)';c.lineWidth=1.6;c.beginPath();c.moveTo(-2,-C);c.lineTo(-2,-96);c.moveTo(2,-C);c.lineTo(2,-96);c.stroke();
+  c.fillStyle='rgba(255,255,255,.72)';for(let k=0;k<9;k++){rr(c,-HW+6+k*14,-90,8,17,1.5);c.fill();}
+  c.fillStyle='rgba(255,255,255,.92)';c.fillRect(2,-98,HW-2,4);
+  c.fillStyle='rgba(255,255,255,.30)';for(const y of[-170,-250,-330]){c.beginPath();c.moveTo(33,y+12);c.lineTo(41,y);c.lineTo(36,y);c.lineTo(36,y-18);c.lineTo(30,y-18);c.lineTo(30,y);c.lineTo(25,y);c.closePath();c.fill();}
+  c.setLineDash([14,14]);c.strokeStyle='rgba(255,255,255,.18)';c.beginPath();c.moveTo(-33,-C);c.lineTo(-33,-100);c.stroke();c.setLineDash([]);
+  c.restore();
+ }
+ // box brackets
+ c.strokeStyle='rgba(232,121,249,.55)';c.lineWidth=2;c.shadowColor='#e879f9';c.shadowBlur=10;
+ [[-1,-1],[1,-1],[1,1],[-1,1]].forEach(([sx,sy])=>{const x=C+sx*HW,y=C+sy*HW;c.beginPath();c.moveTo(x-sx*22,y);c.lineTo(x,y);c.lineTo(x,y-sy*22);c.stroke();});c.shadowBlur=0;
+ c.strokeStyle='rgba(34,211,238,.10)';c.lineWidth=1;c.setLineDash([3,7]);c.beginPath();c.moveTo(C-HW,C);c.lineTo(C+HW,C);c.moveTo(C,C-HW);c.lineTo(C,C+HW);c.stroke();c.setLineDash([]);
+ // vignette
+ const vg=c.createRadialGradient(C,C,300,C,C,640);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.55)');c.fillStyle=vg;c.fillRect(0,0,BASE,BASE);
+}
+
+/* ============ live drawing ============ */
+const cv=$('#cv'),ctx=cv.getContext('2d');
+function fitStage(){const p=cv.parentElement,s=Math.floor(Math.min(p.clientWidth,p.clientHeight)-8),d=Math.min(2,devicePixelRatio||1),px=Math.round(s*d);cv.style.width=cv.style.height=s+'px';if(cv.width!==px){cv.width=cv.height=px;}}
+function drawCar(v){
+ const L=v.L,W=v.W,x=CFG.LX+v.lat,y=v.p-L/2,c=ctx;
+ c.save();c.translate(x,y);
+ c.globalCompositeOperation='lighter';
+ const bg=c.createLinearGradient(0,L/2,0,L/2+48);bg.addColorStop(0,'rgba(255,244,200,.22)');bg.addColorStop(1,'rgba(255,244,200,0)');
+ c.fillStyle=bg;c.beginPath();c.moveTo(-W/2+2,L/2);c.lineTo(W/2-2,L/2);c.lineTo(W/2+12,L/2+48);c.lineTo(-W/2-12,L/2+48);c.closePath();c.fill();
+ c.globalCompositeOperation='source-over';
+ c.fillStyle='rgba(0,0,0,.45)';rr(c,-W/2+2.5,-L/2+3.5,W,L,5);c.fill();
+ const g=c.createLinearGradient(-W/2,0,W/2,0);g.addColorStop(0,mix(v.col,-.38));g.addColorStop(.5,mix(v.col,.1));g.addColorStop(1,mix(v.col,-.38));
+ c.fillStyle=g;rr(c,-W/2,-L/2,W,L,5);c.fill();
+ c.fillStyle='rgba(8,14,28,.88)';
+ if(v.kind==='VAN'){rr(c,-W/2+2,L/2-10,W-4,6,2);c.fill();c.fillStyle=mix(v.col,.4);rr(c,-W/2+2,-L/2+3,W-4,L-17,2);c.fill();c.strokeStyle='rgba(0,0,0,.18)';c.beginPath();c.moveTo(0,-L/2+4);c.lineTo(0,L/2-14);c.stroke();}
+ else{rr(c,-W/2+2,L/2-11,W-4,6,2);c.fill();rr(c,-W/2+2.5,-L/2+3,W-5,4,2);c.fill();c.fillStyle=mix(v.col,.25);rr(c,-W/2+2,-L/2+8,W-4,L-21,3);c.fill();}
+ c.fillStyle='#fff8dc';c.shadowColor='#fff3b0';c.shadowBlur=6;c.fillRect(-W/2+1.5,L/2-2,3.5,2);c.fillRect(W/2-5,L/2-2,3.5,2);
+ const br=v.a<-5||v.v<4;c.shadowColor='#ff3b4d';c.shadowBlur=br?10:0;c.fillStyle=br?'#ff4458':'#6b1620';c.fillRect(-W/2+1.5,-L/2,3.5,2);c.fillRect(W/2-5,-L/2,3.5,2);
+ c.restore();
+}
+function drawEm(v,T){
+ const L=v.L,W=v.W,x=CFG.LX+v.lat,y=v.p-L/2,c=ctx,f=Math.floor(T*8)%2===0;
+ c.save();c.translate(x,y);
+ c.globalCompositeOperation='lighter';
+ for(const s of[-1,1]){const col=((s>0)===f)?'255,40,70':'40,110,255',gr=c.createRadialGradient(s*6,0,2,s*6,0,70);gr.addColorStop(0,`rgba(${col},.34)`);gr.addColorStop(1,`rgba(${col},0)`);c.fillStyle=gr;c.fillRect(-90,-90,180,180);}
+ if(v.ghost&&v.v>40){const tg=c.createLinearGradient(0,-L/2,0,-L/2-80);tg.addColorStop(0,'rgba(180,220,255,.28)');tg.addColorStop(1,'rgba(180,220,255,0)');c.fillStyle=tg;c.fillRect(-W/2+3,-L/2-80,W-6,80);}
+ const bg=c.createLinearGradient(0,L/2,0,L/2+56);bg.addColorStop(0,'rgba(255,244,200,.25)');bg.addColorStop(1,'rgba(255,244,200,0)');c.fillStyle=bg;c.beginPath();c.moveTo(-W/2+2,L/2);c.lineTo(W/2-2,L/2);c.lineTo(W/2+14,L/2+56);c.lineTo(-W/2-14,L/2+56);c.closePath();c.fill();
+ c.globalCompositeOperation='source-over';
+ c.fillStyle='rgba(0,0,0,.5)';rr(c,-W/2+3,-L/2+4,W,L,5);c.fill();
+ const bar=(yy)=>{c.shadowBlur=12;c.shadowColor=f?'#ff2d4a':'#2f6bff';c.fillStyle=f?'#ff2d4a':'#2f6bff';c.fillRect(-W/2+2,yy,W/2-2,3.5);c.shadowColor=f?'#2f6bff':'#ff2d4a';c.fillStyle=f?'#2f6bff':'#ff2d4a';c.fillRect(0,yy,W/2-2,3.5);c.shadowBlur=0;};
+ if(v.type==='AMB'){
+  c.fillStyle='#f8fafc';rr(c,-W/2,-L/2,W,L,5);c.fill();
+  c.fillStyle='#dc2626';c.fillRect(-W/2,-L/2+14,W,3.5);c.fillRect(-W/2,-L/2+21,W,2);
+  c.fillStyle='#0b1222';rr(c,-W/2+2.5,L/2-10,W-5,6,2);c.fill();
+  c.fillStyle='#dc2626';c.fillRect(-1.8,-6,3.6,12);c.fillRect(-6,-1.8,12,3.6);
+  bar(L/2-16);bar(-L/2+3);
+ }else if(v.type==='FIRE'){
+  const g=c.createLinearGradient(-W/2,0,W/2,0);g.addColorStop(0,'#7f1d1d');g.addColorStop(.5,'#ef4444');g.addColorStop(1,'#7f1d1d');c.fillStyle=g;rr(c,-W/2,-L/2,W,L,4);c.fill();
+  c.fillStyle='#fde047';c.fillRect(-W/2,-L/2+12,W,2.5);c.fillRect(-W/2,L/2-24,W,2.5);
+  c.fillStyle='#0b1222';rr(c,-W/2+2.5,L/2-10,W-5,6,2);c.fill();
+  c.fillStyle='#cbd5e1';c.fillRect(-4,-L/2+6,2,L-30);c.fillRect(2,-L/2+6,2,L-30);c.fillStyle='#94a3b8';for(let k=0;k<7;k++)c.fillRect(-4,-L/2+8+k*5.5,8,1.2);
+  bar(L/2-16);bar(-L/2+2);
+ }else{
+  c.fillStyle='#0a0f1c';rr(c,-W/2,-L/2,W,L,5);c.fill();
+  c.fillStyle='#f8fafc';rr(c,-W/2+1,-L/2+10,W-2,7,2);c.fill();rr(c,-W/2+1,-L/2+19,W-2,6,2);c.fill();
+  c.fillStyle='#1e293b';rr(c,-W/2+2.5,L/2-10,W-5,6,2);c.fill();rr(c,-W/2+2.5,-L/2+3,W-5,4,2);c.fill();
+  c.fillStyle='#334155';rr(c,-W/2+2,-L/2+8,W-4,L-20,3);c.fill();
+  bar(L/2-17);
+ }
+ c.fillStyle='#fff8dc';c.shadowColor='#fff3b0';c.shadowBlur=6;c.fillRect(-W/2+1.5,L/2-2,3.5,2);c.fillRect(W/2-5,L/2-2,3.5,2);
+ c.restore();
+}
+function signalFx(i){
+ const s=sim.sig(i),col=s==='G'?'#34d399':s==='Y'?'#fbbf24':'#fb7185',c=ctx;
+ c.save();c.shadowColor=col;c.shadowBlur=18;c.fillStyle=col;c.globalAlpha=.95;rr(c,2,-98,CFG.HW-2,4.5,2);c.fill();c.restore();
+ const x=79,y=-132;
+ c.fillStyle='#09101f';rr(c,x-8,y,16,48,6);c.fill();c.strokeStyle='#2a3a5c';c.lineWidth=1;c.stroke();
+ [['R','#fb7185'],['Y','#fbbf24'],['G','#34d399']].forEach(([k,cl],j)=>{const on=s===k;c.save();c.beginPath();c.arc(x,y+9+j*15,5,0,7);c.fillStyle=on?cl:'#1b2540';if(on){c.shadowColor=cl;c.shadowBlur=16;}c.fill();c.restore();});
+}
+function corridors(T){
+ for(let i=0;i<4;i++){
+  const hasG=sim.L[i].some(v=>v.ghost),act=sim.em&&sim.cur===i&&sim.ph==='G';
+  if(!hasG&&!act)continue;
+  ctx.save();ctx.translate(C,C);ctx.rotate(i*Math.PI/2);
+  const f=Math.floor(T*4)%2===0,g=ctx.createLinearGradient(0,-C,0,-96);g.addColorStop(0,'rgba(251,113,133,0)');g.addColorStop(1,`rgba(${f?'251,113,133':'96,165,250'},.16)`);
+  ctx.fillStyle=g;ctx.fillRect(0,-C,CFG.HW,C-96);
+  ctx.strokeStyle=f?'rgba(251,113,133,.7)':'rgba(96,165,250,.7)';ctx.lineWidth=2;ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=10;ctx.beginPath();ctx.moveTo(CFG.HW-1,-C);ctx.lineTo(CFG.HW-1,-96);ctx.stroke();
+  ctx.restore();
+ }
+}
+function centerHud(T){
+ const c=ctx,ph=sim.ph,col=sim.em?'#fb7185':ph==='G'?'#34d399':ph==='Y'?'#fbbf24':'#fb7185';
+ c.save();c.translate(C,C);
+ c.strokeStyle='rgba(34,211,238,.28)';c.lineWidth=1.5;c.setLineDash([4,7]);c.rotate(T*.35);c.beginPath();c.arc(0,0,44,0,7);c.stroke();c.setLineDash([]);c.rotate(-T*.35);
+ c.strokeStyle='rgba(120,150,210,.2)';c.lineWidth=5;c.beginPath();c.arc(0,0,31,0,7);c.stroke();
+ const fr=ph==='G'?clamp(1-sim.pt/Math.max(sim.dur,.1),0,1):ph==='Y'?clamp(1-sim.pt/2,0,1):0;
+ c.strokeStyle=col;c.shadowColor=col;c.shadowBlur=12;c.lineCap='round';c.beginPath();c.arc(0,0,31,-Math.PI/2,-Math.PI/2+fr*2*Math.PI);c.stroke();c.shadowBlur=0;
+ c.fillStyle=col;c.font='800 20px ui-monospace,Consolas,monospace';c.textAlign='center';c.textBaseline='middle';c.globalAlpha=.9;c.fillText(ph==='AR'?'•':LN[sim.cur],0,1);
+ c.restore();
+}
+function heatOverlay(){
+ ctx.save();ctx.globalCompositeOperation='lighter';
+ for(let i=0;i<4;i++){ctx.save();ctx.translate(C,C);ctx.rotate(i*Math.PI/2);
+  for(const v of sim.L[i]){if(v.ghost)continue;const k=clamp(1-v.v/CFG.V0,0,1),col=k>.6?'251,80,100':k>.25?'251,191,36':'52,211,153',y=v.p-v.L/2,x=CFG.LX+v.lat;
+   const g=ctx.createRadialGradient(x,y,2,x,y,44);g.addColorStop(0,`rgba(${col},.55)`);g.addColorStop(1,`rgba(${col},0)`);ctx.fillStyle=g;ctx.fillRect(x-48,y-48,96,96);}
+  ctx.restore();}
+ ctx.restore();
+}
+function sensors(T){
+ const now=performance.now(),defs=[[-230,'IR-1 · CAR'],[-310,'IR-2 · EMG']];
+ defs.forEach(([y,t],k)=>{
+  const a=clamp(1-(now-hw.flash[k])/700,0,1),c=ctx;
+  c.save();c.translate(CFG.LX,y);c.strokeStyle=hw.on?'rgba(52,211,153,.8)':'rgba(120,150,210,.5)';c.lineWidth=1.5;c.beginPath();c.moveTo(0,-6);c.lineTo(6,0);c.lineTo(0,6);c.lineTo(-6,0);c.closePath();c.stroke();
+  if(a>0){c.strokeStyle=`rgba(52,211,153,${a})`;c.lineWidth=2;c.beginPath();c.arc(0,0,8+(1-a)*34,0,7);c.stroke();}
+  c.fillStyle='rgba(165,243,252,.7)';c.font='700 9px ui-monospace,Consolas,monospace';c.textAlign='left';c.fillText(t,12,3);c.restore();
+ });
+}
+function labels(T){
+ const c=ctx;
+ for(let i=0;i<4;i++){
+  const[x,y]=rot(i,CFG.LX,-402),s=sim.sig(i),col=s==='G'?'#34d399':s==='Y'?'#fbbf24':'#fb7185',q=sim.dem(i);
+  c.save();c.translate(x,y);c.fillStyle='rgba(6,10,22,.82)';c.strokeStyle=LCOL[i];c.lineWidth=1.5;c.shadowColor=LCOL[i];c.shadowBlur=10;rr(c,-52,-14,104,28,14);c.fill();c.stroke();c.shadowBlur=0;
+  c.fillStyle=LCOL[i];c.font='800 13px ui-monospace,Consolas,monospace';c.textAlign='left';c.textBaseline='middle';c.fillText(LN[i],-40,1);
+  c.fillStyle='#e7eeff';c.font='700 12px ui-monospace,Consolas,monospace';c.fillText('Q '+q,-22,1);
+  c.fillStyle=col;c.shadowColor=col;c.shadowBlur=10;c.beginPath();c.arc(40,0,5,0,7);c.fill();c.restore();
+ }
+ for(let i=0;i<4;i++)for(const v of sim.L[i]){
+  if(!v.em)continue;const[x,y]=rot(i,CFG.LX+v.lat,v.p-v.L/2);if(x<0||y<0||x>BASE||y>BASE)continue;
+  const t=TY[v.type].icon+' '+TY[v.type].name.toUpperCase();
+  c.save();c.translate(x,y-(i===0?-36:-36)*0-34);c.font='700 11px "Segoe UI",system-ui,sans-serif';const w=c.measureText(t).width+18;
+  c.fillStyle='rgba(190,18,60,.9)';c.shadowColor='#fb7185';c.shadowBlur=12;rr(c,-w/2,-11,w,22,11);c.fill();c.shadowBlur=0;c.fillStyle='#fff';c.textAlign='center';c.textBaseline='middle';c.fillText(t,0,1);c.restore();
+ }
+}
+function render(){
+ const T=performance.now()/1000,s=cv.width/BASE;
+ ctx.setTransform(s,0,0,s,0,0);ctx.clearRect(0,0,BASE,BASE);ctx.drawImage(SC,0,0,BASE,BASE);
+ if(view==='heat')heatOverlay();
+ corridors(T);centerHud(T);
+ for(let i=0;i<4;i++){ctx.save();ctx.translate(C,C);ctx.rotate(i*Math.PI/2);signalFx(i);if(i===0)sensors(T);for(const v of sim.L[i])if(!v.em)drawCar(v);ctx.restore();}
+ for(let i=0;i<4;i++){ctx.save();ctx.translate(C,C);ctx.rotate(i*Math.PI/2);for(const v of sim.L[i])if(v.em)drawEm(v,T);ctx.restore();}
+ labels(T);
+}
+
+/* ============ chart library ============ */
+function prep(el){const w=el.clientWidth,h=el.clientHeight;if(!w||!h)return null;const d=Math.min(2,(el.ownerDocument.defaultView||window).devicePixelRatio||1);if(el.width!==Math.round(w*d)||el.height!==Math.round(h*d)){el.width=Math.round(w*d);el.height=Math.round(h*d);}const c=el.getContext('2d');c.setTransform(d,0,0,d,0,0);c.clearRect(0,0,w,h);return{c,w,h};}
+function lineChart(el,series,o={}){
+ const p=prep(el);if(!p)return;const{c,w,h}=p,Lm=30,B=16,T=o.legend===false?6:18,R=8,N=o.n||120;
+ let mx=o.max;if(!mx){mx=5;for(const s of series)for(const v of s.data)mx=Math.max(mx,v);mx=Math.ceil(mx*1.15/5)*5;}
+ c.font='9px ui-monospace,Consolas,monospace';c.textBaseline='middle';
+ for(let k=0;k<=4;k++){const y=T+(h-T-B)*k/4;c.strokeStyle='rgba(120,150,210,.14)';c.lineWidth=1;c.beginPath();c.moveTo(Lm,y);c.lineTo(w-R,y);c.stroke();c.fillStyle='#7f8fb0';c.textAlign='right';c.fillText((mx*(1-k/4)).toFixed(mx<10?1:0),Lm-5,y);}
+ c.textAlign='left';c.fillStyle='#7f8fb0';c.fillText('-'+N+'s',Lm,h-5);c.textAlign='right';c.fillText('now',w-R,h-5);
+ series.forEach((s,k)=>{
+  const m=s.data.length;if(m<2)return;
+  const pts=s.data.map((v,j)=>[Lm+(w-Lm-R)*(j+(N-m))/(N-1),T+(h-T-B)*(1-clamp(v/mx,0,1))]);
+  c.beginPath();c.moveTo(pts[0][0],pts[0][1]);
+  for(let j=0;j<m-1;j++){const xc=(pts[j][0]+pts[j+1][0])/2,yc=(pts[j][1]+pts[j+1][1])/2;c.quadraticCurveTo(pts[j][0],pts[j][1],xc,yc);}
+  c.lineTo(pts[m-1][0],pts[m-1][1]);
+  c.strokeStyle=s.color;c.lineWidth=s.w||2;c.shadowColor=s.color;c.shadowBlur=s.dash?0:6;c.setLineDash(s.dash||[]);c.stroke();c.shadowBlur=0;c.setLineDash([]);
+  if(s.fill!==false&&!s.dash){c.lineTo(pts[m-1][0],h-B);c.lineTo(pts[0][0],h-B);c.closePath();const g=c.createLinearGradient(0,T,0,h-B);g.addColorStop(0,s.color+'44');g.addColorStop(1,s.color+'00');c.fillStyle=g;c.fill();}
+  if(o.legend!==false&&s.label){c.fillStyle=s.color;c.beginPath();c.arc(Lm+8+k*(o.lw||70),9,3.5,0,7);c.fill();c.fillStyle='#a9b8d8';c.textAlign='left';c.fillText(s.label,Lm+15+k*(o.lw||70),9);}
+ });
+}
+function barChart(el,items,o={}){
+ const p=prep(el);if(!p)return;const{c,w,h}=p,B=26,T=20;let mx=o.max||Math.max(5,...items.map(i=>i.v))*1.2;
+ const n=items.length,bw=Math.min(54,(w-20)/n*.55),gap=(w-20)/n;
+ c.strokeStyle='rgba(120,150,210,.14)';for(let k=0;k<=3;k++){const y=T+(h-T-B)*k/3;c.beginPath();c.moveTo(10,y);c.lineTo(w-10,y);c.stroke();}
+ items.forEach((it,k)=>{
+  const bh=(h-T-B)*clamp(it.v/mx,0,1),x=10+gap*k+(gap-bw)/2,y=h-B-bh;
+  const g=c.createLinearGradient(0,y,0,h-B);g.addColorStop(0,it.c);g.addColorStop(1,it.c+'22');c.fillStyle=g;c.shadowColor=it.c;c.shadowBlur=10;rr(c,x,y,bw,Math.max(bh,1),[7,7,2,2]);c.fill();c.shadowBlur=0;
+  c.fillStyle='#e7eeff';c.font='700 11px ui-monospace,Consolas,monospace';c.textAlign='center';c.fillText(it.t!==undefined?it.t:String(Math.round(it.v)),x+bw/2,y-7);
+  c.fillStyle='#8091b4';c.font='10px "Segoe UI",sans-serif';c.fillText(it.l,x+bw/2,h-9);
+ });
+}
+function ramp(k){const st=[[12,26,51],[34,211,238],[232,121,249],[251,113,133]],x=clamp(k,0,1)*3,i=Math.min(2,Math.floor(x)),f=x-i,a=st[i],b=st[i+1];return`rgb(${Math.round(a[0]+(b[0]-a[0])*f)},${Math.round(a[1]+(b[1]-a[1])*f)},${Math.round(a[2]+(b[2]-a[2])*f)})`;}
+function heat(el,hist,n=120){
+ const p=prep(el);if(!p)return;const{c,w,h}=p,Lm=20,rh=(h-14)/4,cw=(w-Lm-4)/n;
+ for(let i=0;i<4;i++){c.fillStyle=LCOL[i];c.font='800 10px ui-monospace,Consolas,monospace';c.textAlign='left';c.textBaseline='middle';c.fillText(LN[i],4,i*rh+rh/2);
+  c.fillStyle='rgba(12,26,51,.7)';c.fillRect(Lm,i*rh+1,w-Lm-4,rh-3);
+  const m=hist.length;for(let j=0;j<m;j++){c.fillStyle=ramp(hist[j].q[i]/12);c.fillRect(Lm+(n-m+j)*cw,i*rh+1,cw+.6,rh-3);}}
+ c.fillStyle='#7f8fb0';c.font='9px ui-monospace,Consolas,monospace';c.textAlign='left';c.fillText('-'+n+'s',Lm,h-3);c.textAlign='right';c.fillText('now',w-4,h-3);
+}
+function gantt(el,S,win=90){
+ const p=prep(el);if(!p)return;const{c,w,h}=p,Lm=18,rh=(h-14)/4,t1=S.t,t0=t1-win,xf=t=>Lm+(w-Lm-4)*clamp((t-t0)/win,0,1);
+ for(let i=0;i<4;i++){c.fillStyle=LCOL[i];c.font='800 10px ui-monospace,Consolas,monospace';c.textAlign='left';c.textBaseline='middle';c.fillText(LN[i],3,i*rh+rh/2);c.fillStyle='rgba(120,150,210,.08)';rr(c,Lm,i*rh+2,w-Lm-4,rh-4,4);c.fill();}
+ for(const s of S.seg){const e=s.e===null?t1:s.e;if(e<t0)continue;const x1=xf(Math.max(s.s,t0)),x2=xf(e),y=s.lane*rh+2;
+  c.save();c.shadowColor=s.k==='E'?'#fb7185':LCOL[s.lane];c.shadowBlur=8;
+  if(s.k==='E'){const g=c.createLinearGradient(x1,0,x2,0);g.addColorStop(0,'#e11d48');g.addColorStop(1,'#2563eb');c.fillStyle=g;}else c.fillStyle=LCOL[s.lane];
+  rr(c,x1,y,Math.max(2,x2-x1),rh-4,4);c.fill();c.restore();}
+ c.fillStyle='#7f8fb0';c.font='9px ui-monospace,Consolas,monospace';c.textBaseline='alphabetic';
+ for(let k=0;k<=3;k++){const t=t1-win+k*win/3;c.textAlign=k?'center':'left';c.fillText(fmt(Math.max(0,t)),xf(t)+(k?0:0),h-3);}
+ c.strokeStyle='rgba(34,211,238,.8)';c.lineWidth=1.5;c.beginPath();c.moveTo(w-4,0);c.lineTo(w-4,h-12);c.stroke();
+}
+function gauge(el,v){
+ const p=prep(el);if(!p)return;const{c,w,h}=p,cx=w/2,cy=h-10,r=Math.min(w/2-14,h-24);
+ c.lineWidth=12;c.lineCap='round';c.strokeStyle='rgba(120,150,210,.16)';c.beginPath();c.arc(cx,cy,r,Math.PI,2*Math.PI);c.stroke();
+ const g=c.createLinearGradient(cx-r,0,cx+r,0);g.addColorStop(0,'#34d399');g.addColorStop(.5,'#fbbf24');g.addColorStop(1,'#fb7185');
+ c.strokeStyle=g;c.shadowColor='#22d3ee';c.shadowBlur=14;c.beginPath();c.arc(cx,cy,r,Math.PI,Math.PI+Math.PI*clamp(v,.005,1));c.stroke();c.shadowBlur=0;
+ const a=Math.PI+Math.PI*v;c.strokeStyle='#fff';c.lineWidth=2.5;c.beginPath();c.moveTo(cx+Math.cos(a)*(r-20),cy+Math.sin(a)*(r-20));c.lineTo(cx+Math.cos(a)*(r+8),cy+Math.sin(a)*(r+8));c.stroke();
+ c.fillStyle='#e7eeff';c.font='800 26px ui-monospace,Consolas,monospace';c.textAlign='center';c.fillText(Math.round(v*100)+'%',cx,cy-6);
+}
+function donut(el,vals,cols){
+ const p=prep(el);if(!p)return;const{c,w,h}=p,cx=w/2,cy=h/2,r=Math.min(w,h)/2-14,tot=vals.reduce((a,b)=>a+b,0);
+ c.lineWidth=18;let a0=-Math.PI/2;
+ if(!tot){c.strokeStyle='rgba(120,150,210,.15)';c.beginPath();c.arc(cx,cy,r,0,7);c.stroke();}
+ vals.forEach((v,i)=>{const a1=a0+v/tot*2*Math.PI;c.strokeStyle=cols[i];c.shadowColor=cols[i];c.shadowBlur=10;c.beginPath();c.arc(cx,cy,r,a0+.03,Math.max(a0+.03,a1-.03));c.stroke();a0=a1;});c.shadowBlur=0;
+ c.fillStyle='#e7eeff';c.font='800 24px ui-monospace,Consolas,monospace';c.textAlign='center';c.textBaseline='middle';c.fillText(tot,cx,cy-6);c.fillStyle='#8091b4';c.font='10px sans-serif';c.fillText('SERVED',cx,cy+14);
+}
+function spark(el,data,color){
+ const p=prep(el);if(!p||data.length<2)return;const{c,w,h}=p;const mx=Math.max(1,...data),pts=data.slice(-40).map((v,i,a)=>[w*i/(a.length-1),h-2-(h-4)*v/mx]);
+ c.beginPath();pts.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.strokeStyle=color;c.lineWidth=1.8;c.shadowColor=color;c.shadowBlur=6;c.stroke();c.shadowBlur=0;
+ c.lineTo(w,h);c.lineTo(0,h);c.closePath();const g=c.createLinearGradient(0,0,0,h);g.addColorStop(0,color+'55');g.addColorStop(1,color+'00');c.fillStyle=g;c.fill();
+}
+const qSeries=(S)=>LN.map((n,i)=>({data:S.hist.slice(-120).map(x=>x.q[i]),color:LCOL[i],label:'Lane '+n}));
+
+/* ============ UI build ============ */
+$('#lanes').innerHTML=LN.map((n,i)=>`<div class="lane glass" style="--c:${LCOL[i]}"><div class="lt"><span class="lc">${n}</span><div><b>Lane ${n}</b><small>${DIRS[i]} approach</small></div><span class="ls R" id="ls${i}">RED</span></div><div class="lq"><div class="qn" id="qn${i}">0</div><div class="qb" id="qb${i}">${'<i></i>'.repeat(12)}</div></div><div class="lg"><div><small>Rate/min</small><b id="lr${i}">0</b></div><div><small>Served</small><b id="lv${i}">0</b></div><div><small>Avg delay</small><b id="ld${i}">–</b></div><div><small>Oldest</small><b id="lo${i}">–</b></div></div></div>`).join('');
+const KP=[['Vehicles served','var(--cy)'],['Avg delay','var(--am)'],['Throughput','var(--bl)'],['Emergency response','var(--rd)'],['Queued now','var(--mg)'],['AI gain vs fixed','var(--gr)']];
+$('#kpis').innerHTML=KP.map((k,i)=>`<div class="glass kpi" style="--a:${k[1]}"><div class="kl">${k[0]}</div><div class="kv" id="k${i}">0</div><div class="kd" id="kd${i}">&nbsp;</div><canvas id="ks${i}"></canvas></div>`).join('');
+const SPD=[.5,1,2,4,8];
+$('#spd').innerHTML=SPD.map((s,i)=>`<button data-s="${s}" class="${s===1?'on':''}">${s}×</button>`).join('');
+$('#spd').onclick=e=>{const b=e.target.closest('button');if(!b)return;speed=+b.dataset.s;$$('#spd button').forEach(x=>x.classList.toggle('on',x===b));};
+$('#vsel').onclick=e=>{const b=e.target.closest('button');if(!b)return;view=b.dataset.v;$$('#vsel button').forEach(x=>x.classList.toggle('on',x===b));};
+$('#tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;tabNow=b.dataset.p;$$('#tabs button').forEach(x=>x.classList.toggle('on',x===b));$$('.pane').forEach(p=>p.classList.toggle('on',p.id==='pn_'+tabNow));ui(true);};
+$('#mCar').innerHTML=LN.map((n,i)=>`<button class="btn" data-l="${i}" style="border-color:${LCOL[i]}66">+ ${n}</button>`).join('');
+$('#mCar').onclick=e=>{const b=e.target.closest('button');if(b)injectN(+b.dataset.l,'CAR');};
+const ET=['AMB','FIRE','POL'];
+$('#mType').innerHTML=ET.map(t=>`<button class="tcard ${t===selEm?'on':''}" data-t="${t}"><span>${TY[t].icon}</span>${TY[t].name}</button>`).join('');
+$('#mType').onclick=e=>{const b=e.target.closest('button');if(!b)return;selEm=b.dataset.t;$$('#mType button').forEach(x=>x.classList.toggle('on',x===b));};
+$('#mEm').innerHTML=LN.map((n,i)=>`<button class="btn rd" data-l="${i}">🚨 ${n}</button>`).join('');
+$('#mEm').onclick=e=>{const b=e.target.closest('button');if(b)inject(mkEv(+b.dataset.l,selEm));};
+$('#bReset').onclick=()=>{sim.reset();base.reset();rp.on=false;rp.i=0;rp.t=0;rp.done=false;updSrc();};
+$('#btnFreeze').onclick=()=>{frozen=!frozen;$('#btnFreeze').classList.toggle('on',frozen);$('#btnFreeze').textContent=frozen?'▶ Resume':'⏸ Freeze';};
+document.addEventListener('keydown',e=>{
+ if(/INPUT|TEXTAREA/.test(document.activeElement.tagName))return;
+ if(e.code==='Space'){e.preventDefault();$('#btnFreeze').click();return;}
+ const k='abcd'.indexOf(e.key.toLowerCase());if(k<0||e.ctrlKey||e.metaKey)return;
+ if(e.shiftKey)inject(mkEv(k,selEm));else injectN(k,'CAR');
+});
+
+/* ============ dataset engine ============ */
+function parseT(s){s=String(s).trim();if(s.includes(':')){const p=s.split(':').map(Number);return p.length===3?p[0]*3600+p[1]*60+p[2]:p[0]*60+p[1];}return parseFloat(s);}
+function normType(s){s=String(s||'').trim().toUpperCase();if(/^AMB/.test(s))return'AMB';if(/^FIRE/.test(s))return'FIRE';if(/^POL/.test(s))return'POL';return'CAR';}
+function parseCSV(text){
+ const rows=text.replace(/^\uFEFF/,'').split(/\r?\n/).map(r=>r.trim()).filter(Boolean);if(!rows.length)return null;
+ let hd=rows[0].toLowerCase().split(',').map(s=>s.trim()),has=/[a-z]/.test(hd[0])&&!/^\d+:\d+/.test(hd[0]);
+ let ci={t:0,l:1,a:2,v:3};
+ if(has){hd.forEach((h,i)=>{if(/time|^t$|sec/.test(h))ci.t=i;else if(/lane/.test(h))ci.l=i;else if(/action|event/.test(h))ci.a=i;else if(/type|vehicle/.test(h))ci.v=i;});rows.shift();}
+ const ev=[];let bad=0;
+ for(const r of rows){
+  const f=r.split(',').map(s=>s.trim());let t=parseT(f[ci.t]);const lm=String(f[ci.l]||'').toUpperCase().match(/[ABCD]$|[0-3]$/);
+  if(!isFinite(t)||!lm){bad++;continue;}
+  let lane=/\d/.test(lm[0])?+lm[0]:'ABCD'.indexOf(lm[0]);let ty=normType(f[ci.v]);const act=String(f[ci.a]||'').toUpperCase();
+  if(ty==='CAR'&&act.includes('EMERG'))ty='AMB';
+  ev.push({t,lane,type:ty});
+ }
+ ev.sort((a,b)=>a.t-b.t);if(!ev.length)return null;
+ const cnt=[0,0,0,0];let em=0;ev.forEach(e=>{cnt[e.lane]++;if(e.type!=='CAR')em++;});
+ return{ev,dur:ev[ev.length-1].t,cnt,em,bad};
+}
+function setDs(d,name){ds={ev:d.ev,dur:d.dur,name,cnt:d.cnt,em:d.em};rp={on:false,t:0,i:0,loop:$('#loop').checked,done:false,laps:0};
+ $('#dsInfo').innerHTML=`<b style="color:#a7f3d0">${name}</b><br>${d.ev.length.toLocaleString()} events · ${fmt(d.dur)} · ${d.em} emergency · A${d.cnt[0]} B${d.cnt[1]} C${d.cnt[2]} D${d.cnt[3]}${d.bad?' · '+d.bad+' rows skipped':''}`;
+ sim.log('sys','Dataset loaded: '+name+' ('+d.ev.length+' events)');updSrc();}
+$('#csv').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{const d=parseCSV(ev.target.result);if(!d){$('#dsInfo').textContent='Could not read any valid rows from '+f.name;return;}setDs(d,f.name);};r.readAsText(f);};
+function demoDs(){
+ const R=mulberry(2026),ev=[],dur=1200,wt=[.085,.06,.05,.06];
+ for(let l=0;l<4;l++){let t=R()*4;while(t<dur){const wave=1+.6*Math.sin(t/85+l*1.7)+((t>420&&t<660&&l<2)?1.0:0),rt=Math.max(.02,wt[l]*wave);t+=-Math.log(1-R())/rt;if(t<dur)ev.push({t,lane:l,type:'CAR'});}}
+ let te=22;while(te<dur){ev.push({t:te,lane:(R()*4)|0,type:ET[(R()*3)|0]});te+=40+R()*45;}
+ ev.sort((a,b)=>a.t-b.t);const cnt=[0,0,0,0];let em=0;ev.forEach(e=>{cnt[e.lane]++;if(e.type!=='CAR')em++;});return{ev,dur,cnt,em,bad:0};
+}
+$('#bDemo').onclick=()=>{setDs(demoDs(),'built-in-demo-feed');startReplay();};
+$('#loop').onchange=()=>{rp.loop=$('#loop').checked;};
+function startReplay(){if(!ds.ev.length)return;sim.reset();base.reset();rp.on=true;rp.t=0;rp.i=0;rp.done=false;rp.laps=0;rp.loop=$('#loop').checked;sim.log('sys','Replay started: '+ds.name);updSrc();}
+$('#bStart').onclick=startReplay;$('#bRestart').onclick=startReplay;
+$('#bPause').onclick=()=>{if(!ds.ev.length||rp.done)return;rp.on=!rp.on;updSrc();};
+function feed(h){
+ rp.t+=h;const E=ds.ev;
+ while(rp.i<E.length&&E[rp.i].t<=rp.t){inject(mkEv(E[rp.i].lane,E[rp.i].type));rp.i++;}
+ if(rp.i>=E.length){if(rp.loop){rp.t=0;rp.i=0;rp.laps++;}else{rp.on=false;rp.done=true;sim.log('sys','Dataset finished');updSrc();}}
+}
+function updSrc(){
+ const c=$('#chSrc');c.className='chip'+(rp.on?' on':ds.ev.length?' warn':'');
+ c.querySelector('b').textContent=rp.on?'Dataset ▶ '+ds.name:rp.done?'Dataset complete':ds.ev.length?'Dataset ready · '+ds.name:'Standby';
+ $('#bPause').textContent=rp.on?'⏸ Pause':'▶ Resume';
+}
+
+/* ============ hardware (Web Serial) ============ */
+async function connectHw(){
+ if(!('serial' in navigator)){alert('Web Serial is not supported in this browser. Use Chrome or Edge on desktop.');return;}
+ try{
+  const port=await navigator.serial.requestPort();await port.open({baudRate:115200});
+  hw.on=true;hw.writer=port.writable?port.writable.getWriter():null;
+  $('#hwDot').classList.add('on');$('#hwTxt').textContent='Arduino linked · 115200 baud';$('#chHw').className='chip on';$('#chHw b').textContent='Hardware live';$('#btnHw').textContent='✓ Arduino linked';sim.log('sys','Hardware connected');
+  const rd=port.readable.pipeThrough(new TextDecoderStream()).getReader();let buf='';
+  while(true){
+   const{value,done}=await rd.read();if(done)break;if(!value)continue;
+   buf+=value;const ls=buf.split('\n');buf=ls.pop();
+   for(let ln of ls){ln=ln.trim();if(!ln)continue;hw.last=ln;$('#hwLast').textContent='⟵ '+ln;
+    const m=ln.match(/^(CAR|EM)_([ABCD])(?:[_:](AMB|FIRE|POL))?$/);if(!m)continue;
+    const l='ABCD'.indexOf(m[2]);
+    if(m[1]==='CAR'){hw.flash[0]=performance.now();inject(mkEv(l,'CAR'));}else{hw.flash[1]=performance.now();inject(mkEv(l,m[3]||selEm));}}
+  }
+ }catch(err){console.error(err);}
+ hw.on=false;hw.writer=null;$('#hwDot').classList.remove('on');$('#hwTxt').textContent='Arduino disconnected';$('#chHw').className='chip';$('#chHw b').textContent='Hardware offline';
+}
+$('#btnHw').onclick=connectHw;$('#btnHw2').onclick=connectHw;
+function hwOut(){
+ if(!hw.writer)return;const s='S,'+[0,1,2,3].map(i=>sim.sig(i)).join(',')+'\n';
+ if(s!==hw.lastSig){hw.lastSig=s;try{hw.writer.write(new TextEncoder().encode(s));}catch(e){}}
+}
+
+/* ============ UI refresh ============ */
+const pc=(a,b)=>b>0?Math.round((b-a)/b*100):null;
+function predictNext(){
+ let best=-1,bs=0;for(let k=1;k<=4;k++){const i=(sim.cur+k)%4;const s=sim.score(i);if(s>bs){bs=s;best=i;}}
+ if(best<0)return null;return{lane:best,win:Math.round(gw(sim.dem(best)+sim.rate[best]/60*6)),s:bs};
+}
+function ui(force){
+ const S=sim,B=base,E=S.em||S.L.some(l=>l.some(v=>v.ghost)),ph=S.ph;
+ $('#clk').textContent=clk(S.t);
+ const pcol=E?'var(--rd)':ph==='G'?'var(--gr)':ph==='Y'?'var(--am)':'var(--rd)';
+ $('#phase').style.setProperty('--pc',pcol);
+ $('#pTxt').textContent=ph==='AR'?'ALL RED · CLEARING':S.em?'PRIORITY · LANE '+LN[S.cur]:'LANE '+LN[S.cur]+' · '+(ph==='G'?'GREEN':'YELLOW');
+ $('#pLet').textContent=ph==='AR'?'•':LN[S.cur];
+ const fr=ph==='G'?clamp(1-S.pt/Math.max(S.dur,.1),0,1):ph==='Y'?clamp(1-S.pt/2,0,1):0;$('#pArc').style.strokeDashoffset=157.08*(1-fr);
+ const nx=predictNext();$('#pSub').innerHTML=`Elapsed <b>${Math.floor(S.pt)} s</b> · plan <b>${Math.round(S.dur)} s</b>${nx?` · next ▸ <b>${LN[nx.lane]}</b> ~${nx.win} s`:''}`;
+ // emergency banner
+ let ev=null;for(let i=0;i<4;i++)for(const v of S.L[i])if(v.em&&!v.crossed){ev=v;break;}
+ if(!ev&&S.em)for(const v of S.L[S.cur])if(v.em){ev=v;break;}
+ $('#emb').classList.toggle('on',!!ev);
+ if(ev){$('#emIc').textContent=TY[ev.type].icon;$('#emTx').textContent=(TY[ev.type].name+' · Lane '+LN[ev.lane]).toUpperCase();$('#emSm').textContent=(S.em&&S.cur===ev.lane&&ph==='G')?'Corridor open · other lanes held red':'Preempting signals · clearing corridor';}
+ // dataset bar
+ const db=$('#dsBar');db.classList.toggle('on',ds.ev.length>0);
+ if(ds.ev.length){$('#dsName').textContent=(rp.on?'▶ ':rp.done?'■ ':'⏸ ')+ds.name;$('#dsPb').style.width=(clamp(rp.t/Math.max(ds.dur,1),0,1)*100)+'%';$('#dsTm').textContent=fmt(rp.t)+' / '+fmt(ds.dur);$('#dsEv').textContent=rp.i+' / '+ds.ev.length+' events'+(rp.laps?' · lap '+(rp.laps+1):'');}
+ const idle=!ds.ev.length&&S.t<20&&S.st.arr.every(x=>!x);$('#hint').classList.toggle('on',idle);
+ // lanes
+ const st=S.st;
+ for(let i=0;i<4;i++){
+  const q=S.dem(i),sg=S.sig(i),isE=S.em&&S.cur===i&&ph==='G';
+  const l=$('#ls'+i);l.className='ls '+(isE?'E':sg);l.textContent=isE?'PRIORITY':sg==='G'?'GREEN':sg==='Y'?'YELLOW':'RED';
+  $('#qn'+i).textContent=q;$$('#qb'+i+' i').forEach((b,k)=>b.classList.toggle('f',k<q));
+  $('#lr'+i).textContent=Math.round(S.rate[i]);$('#lv'+i).textContent=st.served[i];
+  $('#ld'+i).textContent=st.dN[i]?(st.dSum[i]/st.dN[i]).toFixed(1)+'s':'–';const o=S.oldest(i);$('#lo'+i).textContent=q&&o>0?Math.round(o)+'s':'–';
+ }
+ // KPIs
+ const served=st.served.reduce((a,b)=>a+b,0),bServed=B.st.served.reduce((a,b)=>a+b,0),aD=S.avgAll(),bD=B.avgAll(),tot=[0,1,2,3].reduce((a,i)=>a+S.dem(i),0),mxq=Math.max(...[0,1,2,3].map(i=>S.dem(i)));
+ const gain=(st.dN.reduce((a,b)=>a+b,0)>8&&bD>0)?pc(aD,bD):null;
+ $('#k0').textContent=served;$('#kd0').textContent='Fixed timer: '+bServed;
+ $('#k1').textContent=aD?aD.toFixed(1)+'s':'–';$('#kd1').textContent='Fixed timer: '+(bD?bD.toFixed(1)+'s':'–');
+ $('#k2').textContent=S.thr().toFixed(0);$('#kd2').textContent='veh / min · fixed '+B.thr().toFixed(0);
+ $('#k3').textContent=st.emN?(st.emSum/st.emN).toFixed(1)+'s':'–';$('#kd3').textContent=(B.st.emN?'Fixed: '+(B.st.emSum/B.st.emN).toFixed(1)+'s · ':'')+st.pre+' preempts';
+ $('#k4').textContent=tot;$('#kd4').textContent='busiest lane: '+mxq;
+ $('#k5').textContent=gain===null?'–':(gain>0?'+':'')+gain+'%';$('#kd5').textContent='lower delay than fixed';
+ const H=S.hist;spark($('#ks0'),H.map(x=>x.thr),'#22d3ee');spark($('#ks1'),H.map(x=>x.d),'#fbbf24');spark($('#ks2'),H.map(x=>x.thr),'#60a5fa');spark($('#ks4'),H.map(x=>x.tot),'#e879f9');
+ // congestion
+ const occ=[0,1,2,3].map(i=>clamp(S.dem(i)/14,0,1)),ci=.6*(occ.reduce((a,b)=>a+b,0)/4)+.4*Math.max(...occ);
+ gauge($('#cGauge'),ci);$('#ciTxt').textContent=ci<.25?'Free flow':ci<.5?'Moderate':ci<.75?'Heavy':'Gridlock risk';
+ gantt($('#cGantt'),S,90);
+ if(tabNow==='ai')paneAI();else if(tabNow==='cmp')paneCmp();else if(tabNow==='log')paneLog(force);else if(tabNow==='ch')paneCh();
+}
+let logSeq=-1;
+function paneLog(force){
+ if(sim.seq===logSeq&&!force)return;logSeq=sim.seq;const cm={em:'#fb7185',pre:'#e879f9',sig:'#22d3ee',ai:'#34d399',sys:'#fbbf24'};
+ $('#pn_log').innerHTML='<div class="logl">'+sim.logs.slice(-60).reverse().map(l=>`<div style="--c:${cm[l.k]||'#22d3ee'}"><em>${fmt(l.t)}</em>${l.m}</div>`).join('')+'</div>';
+}
+function paneAI(){
+ const S=sim,nx=predictNext(),sc=[0,1,2,3].map(i=>S.score(i)),mx=Math.max(1,...sc);
+ let h=`<div class="dec"><small class="mu" style="letter-spacing:.16em">LIVE DECISION</small><br><b>${S.em?'Emergency priority active':S.ph==='AR'?'Evaluating next phase…':'Serving Lane '+LN[S.cur]}</b><p>${S.ph==='G'&&!S.em?`Green planned for ${Math.round(S.dur)} s (5–25 s window). Gap-out when the lane empties and others wait.`:S.em?'Preemption holds the emergency lane green, other lanes red, then releases the queue for 3 s.':'Scoring every lane by queue + oldest wait + starvation.'}</p></div>`;
+ h+='<div class="chtitle" style="margin-top:0">Lane priority scores</div>';
+ for(let i=0;i<4;i++)h+=`<div class="sc ${nx&&nx.lane===i?'nx':''}"><span class="lc2" style="background:${LCOL[i]}">${LN[i]}</span><div class="bar"><i style="width:${sc[i]/mx*100}%;background:${LCOL[i]};color:${LCOL[i]}"></i></div><span class="v">${sc[i].toFixed(1)} · q${S.dem(i)}</span></div>`;
+ h+='<div class="chtitle">Predicted next green windows</div><div class="row4">';
+ for(let i=0;i<4;i++){const w=gw(S.dem(i)+S.rate[i]/60*6);h+=`<div class="sec" style="padding:8px;text-align:center;margin:0;border-color:${LCOL[i]}66"><div class="mu" style="font-size:10px">LANE ${LN[i]}</div><b class="mono" style="font-size:20px;color:${LCOL[i]}">${Math.round(w)}s</b></div>`;}
+ h+=`</div><div class="chtitle">Controller parameters</div><div class="logl"><div>Green window = clamp(5 + 0.8 × (queue + forecast), 5, 20) s, extended to 25 s while a queue persists</div><div>Yellow 2 s · all-red 1.2 s · gap-out after 5 s</div><div>Arrival forecast: EMA of 5 s windows (veh/min) A ${S.rate[0].toFixed(0)} · B ${S.rate[1].toFixed(0)} · C ${S.rate[2].toFixed(0)} · D ${S.rate[3].toFixed(0)}</div><div>Preemptions so far: ${S.st.pre}</div></div>`;
+ h+='<div class="chtitle">Recent decisions</div><div class="logl">'+S.logs.filter(l=>l.k==='ai'||l.k==='pre').slice(-7).reverse().map(l=>`<div style="--c:${l.k==='pre'?'#e879f9':'#34d399'}"><em>${fmt(l.t)}</em>${l.m}</div>`).join('')+'</div>';
+ $('#pn_ai').innerHTML=h;
+}
+function cmpRow(l,a,b,u,lower,dp=1){
+ const mx=Math.max(a,b,.001),d=lower?(b>0?Math.round((b-a)/b*100):null):(b>0?Math.round((a-b)/b*100):null);
+ const good=d!==null&&d>0;
+ return`<div class="cr"><div class="cl"><span>${l}</span><b class="${d===null?'':good?'good':'bad'}">${d===null?'–':(d>0?'▲ ':'▼ ')+Math.abs(d)+'% better'.replace('better',good?'better':'worse')}</b></div><div class="cb"><div class="t"><i style="width:${a/mx*100}%;background:linear-gradient(90deg,#0891b2,#22d3ee)"></i></div><span style="color:#67e8f9">${a.toFixed(dp)}${u}</span></div><div class="cb"><div class="t"><i style="width:${b/mx*100}%;background:linear-gradient(90deg,#a21caf,#e879f9)"></i></div><span style="color:#f0abfc">${b.toFixed(dp)}${u}</span></div></div>`;
+}
+function cmpData(){
+ const S=sim,B=base,aq=S.st.qN?S.st.qSum/S.st.qN:0,bq=B.st.qN?B.st.qSum/B.st.qN:0;
+ return{aD:S.avgAll(),bD:B.avgAll(),aq,bq,aT:S.thr(),bT:B.thr(),aS:S.st.served.reduce((a,b)=>a+b,0),bS:B.st.served.reduce((a,b)=>a+b,0),aE:S.st.emN?S.st.emSum/S.st.emN:0,bE:B.st.emN?B.st.emSum/B.st.emN:0,eN:S.st.emN,beN:B.st.emN};
+}
+function paneCmp(){
+ const d=cmpData(),g=d.bD>0&&d.aS>8?pc(d.aD,d.bD):null;
+ let h=`<div class="big"><small>Average delay reduction</small><b>${g===null?'–':(g>0?'−':'+')+Math.abs(g)+'%'}</b><small>Adaptive AI vs fixed 15 s timer · identical traffic</small></div>`;
+ h+=`<div class="mu" style="font-size:11px;margin-bottom:6px"><span style="color:#67e8f9">■</span> Adaptive AI &nbsp; <span style="color:#f0abfc">■</span> Fixed-time baseline (no preemption)</div>`;
+ h+=cmpRow('Avg delay per vehicle',d.aD,d.bD,' s',true)+cmpRow('Avg vehicles queued',d.aq,d.bq,'',true)+cmpRow('Throughput (veh/min)',d.aT,d.bT,'',false,0)+cmpRow('Vehicles served',d.aS,d.bS,'',false,0);
+ h+=(d.eN&&d.beN)?cmpRow('Emergency response',d.aE,d.bE,' s',true):`<div class="cr"><div class="cl"><span>Emergency response</span><b>${d.eN?d.aE.toFixed(1)+' s (AI)':'no event yet'}</b></div></div>`;
+ h+=`<p class="mu" style="font-size:11px">A second, hidden intersection runs the same arrivals with a classic fixed-time controller so every number above is a like-for-like comparison.</p>`;
+ $('#pn_cmp').innerHTML=h;
+}
+function paneCh(){
+ const S=sim,B=base;
+ lineChart($('#mQ'),qSeries(S),{max:Math.max(10,...S.hist.slice(-120).flatMap(x=>x.q))*1.1,lw:62});
+ lineChart($('#mD'),[{data:S.hist.slice(-120).map(x=>x.d),color:'#22d3ee',label:'Adaptive AI',lw:96},{data:B.hist.slice(-120).map(x=>x.d),color:'#e879f9',label:'Fixed timer',dash:[5,4]}],{lw:96});
+ heat($('#mH'),S.hist.slice(-120));
+ barChart($('#mB'),LN.map((n,i)=>({l:'Lane '+n,v:S.st.served[i],c:LCOL[i]})));
+}
+
+/* ============ analytics pop-out ============ */
+const POP=`<!doctype html><html><head><meta charset="utf-8"><title>AURORA · Analytics Window</title><style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#050810;color:#e7eeff;font:13px "Segoe UI",system-ui,sans-serif;overflow:hidden}
+body{background:radial-gradient(900px 500px at 10% -10%,rgba(34,211,238,.12),transparent 60%),radial-gradient(800px 600px at 100% 110%,rgba(232,121,249,.12),transparent 60%),#050810;display:grid;grid-template-rows:54px 1fr}
+header{display:flex;align-items:center;gap:18px;padding:0 18px;border-bottom:1px solid rgba(140,180,255,.15);background:rgba(10,16,32,.8)}
+.b{font-weight:800;letter-spacing:.3em;background:linear-gradient(90deg,#67e8f9,#e879f9);-webkit-background-clip:text;background-clip:text;color:transparent}.b small{letter-spacing:.12em;color:#8091b4;-webkit-text-fill-color:#8091b4;margin-left:8px;font-weight:500}
+nav{display:flex;gap:4px}nav button{font:700 12px inherit;font-family:inherit;color:#8091b4;background:transparent;border:1px solid transparent;border-radius:9px;padding:8px 16px;cursor:pointer}nav button.on{color:#a5f3fc;background:rgba(34,211,238,.12);border-color:rgba(34,211,238,.35)}
+#pk{margin-left:auto;display:flex;gap:22px;font:12px ui-monospace,Consolas,monospace;color:#8091b4}#pk b{color:#a5f3fc;font-size:15px}
+main{padding:14px;min-height:0}.pane{display:none;height:100%;gap:12px}.pane.on{display:grid}
+#p_ov,#p_cm{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}#p_sg{grid-template-columns:1fr 1fr;grid-template-rows:1.3fr 1fr}
+.card{display:flex;flex-direction:column;min-height:0;min-width:0;padding:12px 14px;border-radius:16px;border:1px solid rgba(140,180,255,.15);background:linear-gradient(180deg,rgba(22,32,60,.74),rgba(9,14,30,.8));box-shadow:0 12px 40px rgba(0,0,0,.4)}
+.card h3{margin:0 0 8px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#8091b4}.card canvas{flex:1 1 0;height:0;min-height:0;width:100%;display:block}
+.span2{grid-column:1/3}.row{display:flex;gap:10px;flex:1;min-height:0}.row canvas{flex:1}
+</style></head><body><header><div class="b">AURORA<small>ANALYTICS WINDOW</small></div><nav id="pt"><button data-t="ov" class="on">Overview</button><button data-t="sg">Signals</button><button data-t="cm">AI vs Fixed</button></nav><div id="pk"></div></header>
+<main>
+<section class="pane on" id="p_ov"><div class="card"><h3>Queue length per lane</h3><canvas id="p_q"></canvas></div><div class="card"><h3>Average delay · 60 s window (s)</h3><canvas id="p_d"></canvas></div><div class="card"><h3>Vehicles served · lane share</h3><div class="row"><canvas id="p_b"></canvas><canvas id="p_dn" style="max-width:240px"></canvas></div></div><div class="card"><h3>Density heatmap · lanes × time</h3><canvas id="p_h"></canvas></div></section>
+<section class="pane" id="p_sg"><div class="card span2"><h3>Signal timeline · 3 minutes · red/blue = emergency priority</h3><canvas id="p_g"></canvas></div><div class="card"><h3>Green-time share per lane</h3><canvas id="p_gs"></canvas></div><div class="card"><h3>Arrival rate (veh/min, EMA)</h3><canvas id="p_ar"></canvas></div></section>
+<section class="pane" id="p_cm"><div class="card"><h3>Delay · AI vs fixed timer</h3><canvas id="p_cd"></canvas></div><div class="card"><h3>Total queue · AI vs fixed timer</h3><canvas id="p_cq"></canvas></div><div class="card"><h3>Head-to-head (lower is better except throughput)</h3><canvas id="p_cb"></canvas></div><div class="card"><h3>Throughput · veh/min</h3><canvas id="p_ct"></canvas></div></section>
+</main></body></html>`;
+function openPop(){
+ if(pop&&!pop.closed){pop.focus();return;}
+ pop=window.open('','AuroraAnalytics','width=1360,height=860,resizable=yes');
+ if(!pop){alert('Pop-up blocked. Allow pop-ups for this page and try again.');return;}
+ pop.document.open();pop.document.write(POP);pop.document.close();
+ pop.document.querySelectorAll('#pt button').forEach(b=>b.addEventListener('click',()=>{popTab=b.dataset.t;pop.document.querySelectorAll('#pt button').forEach(x=>x.classList.toggle('on',x===b));['ov','sg','cm'].forEach(k=>pop.document.getElementById('p_'+k).classList.toggle('on',k===popTab));drawPop();}));
+ setTimeout(drawPop,80);
+}
+$('#btnPop').onclick=openPop;$('#btnPop2').onclick=openPop;
+function drawPop(){
+ if(!pop||pop.closed)return;const d=pop.document,g=id=>d.getElementById(id);if(!g('p_q'))return;
+ const S=sim,B=base,cd=cmpData();
+ g('pk').innerHTML=`<span>SIM <b>${clk(S.t)}</b></span><span>SERVED <b>${cd.aS}</b></span><span>DELAY <b>${cd.aD.toFixed(1)}s</b></span><span>THRU <b>${cd.aT.toFixed(0)}/min</b></span><span>PREEMPT <b>${S.st.pre}</b></span>`;
+ if(popTab==='ov'){
+  lineChart(g('p_q'),qSeries(S),{lw:90,max:Math.max(10,...S.hist.slice(-120).flatMap(x=>x.q))*1.1});
+  lineChart(g('p_d'),[{data:S.hist.slice(-120).map(x=>x.d),color:'#fbbf24',label:'Avg delay',lw:90}]);
+  barChart(g('p_b'),LN.map((n,i)=>({l:'Lane '+n,v:S.st.served[i],c:LCOL[i]})));donut(g('p_dn'),S.st.served,LCOL);
+  heat(g('p_h'),S.hist.slice(-120));
+ }else if(popTab==='sg'){
+  gantt(g('p_g'),S,180);
+  let gt=[0,0,0,0];for(const s of S.seg){const e=s.e===null?S.t:s.e;gt[s.lane]+=Math.max(0,e-s.s);}const tt=gt.reduce((a,b)=>a+b,0)||1;
+  barChart(g('p_gs'),LN.map((n,i)=>({l:'Lane '+n,v:gt[i]/tt*100,t:Math.round(gt[i]/tt*100)+'%',c:LCOL[i]})),{max:100});
+  barChart(g('p_ar'),LN.map((n,i)=>({l:'Lane '+n,v:S.rate[i],t:S.rate[i].toFixed(0),c:LCOL[i]})));
+ }else{
+  lineChart(g('p_cd'),[{data:S.hist.slice(-120).map(x=>x.d),color:'#22d3ee',label:'Adaptive AI',lw:100},{data:B.hist.slice(-120).map(x=>x.d),color:'#e879f9',label:'Fixed timer',dash:[6,4]}]);
+  lineChart(g('p_cq'),[{data:S.hist.slice(-120).map(x=>x.tot),color:'#22d3ee',label:'Adaptive AI',lw:100},{data:B.hist.slice(-120).map(x=>x.tot),color:'#e879f9',label:'Fixed timer',dash:[6,4]}]);
+  barChart(g('p_cb'),[{l:'AI delay',v:cd.aD,t:cd.aD.toFixed(1),c:'#22d3ee'},{l:'Fixed delay',v:cd.bD,t:cd.bD.toFixed(1),c:'#e879f9'},{l:'AI queue',v:cd.aq,t:cd.aq.toFixed(1),c:'#22d3ee'},{l:'Fixed queue',v:cd.bq,t:cd.bq.toFixed(1),c:'#e879f9'},{l:'AI emerg.',v:cd.aE,t:cd.aE.toFixed(1),c:'#34d399'},{l:'Fixed emerg.',v:cd.bE,t:cd.bE.toFixed(1),c:'#fb7185'}]);
+  lineChart(g('p_ct'),[{data:S.hist.slice(-120).map(x=>x.thr),color:'#22d3ee',label:'Adaptive AI',lw:100},{data:B.hist.slice(-120).map(x=>x.thr),color:'#e879f9',label:'Fixed timer',dash:[6,4]}]);
+ }
+}
+
+/* ============ main loop ============ */
+let last=performance.now(),acc=0,uiT=1,popT=0;
+function tick(h){if(rp.on)feed(h);sim.step(h);base.step(h);}
+function frame(now){
+ const rd=Math.min(.1,(now-last)/1000);last=now;
+ if(!frozen){acc=Math.min(.6,acc+rd*speed);let n=0;const h=1/30;while(acc>=h&&n<48){tick(h);acc-=h;n++;}}
+ render();hwOut();
+ uiT+=rd;if(uiT>.12){uiT=0;ui();}
+ popT+=rd;if(popT>.25){popT=0;drawPop();}
+ requestAnimationFrame(frame);
+}
+buildScene();fitStage();addEventListener('resize',fitStage);new ResizeObserver(fitStage).observe($('#view'));
+updSrc();ui(true);requestAnimationFrame(frame);
+</script></body></html>
